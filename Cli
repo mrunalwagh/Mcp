@@ -1,35 +1,76 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { chromium } from "playwright";
 
-const server = new Server({
-  name: "playwright-local",
-  version: "1.0.0"
-});
+const server = new Server(
+  {
+    name: "playwright-local",
+    version: "1.0.0"
+  },
+  {
+    capabilities: {
+      tools: {}
+    }
+  }
+);
 
 let browser;
 let page;
 
-// 👉 TOOL: open browser
-server.tool("open", async ({ url }) => {
-  if (!browser) browser = await chromium.launch({ headless: false });
-  page = await browser.newPage();
-  await page.goto(url);
-
-  return [
-    { type: "text", text: `Opened ${url}` }
-  ];
+// ✅ DEFINE TOOLS PROPERLY
+server.setRequestHandler("tools/list", async () => {
+  return {
+    tools: [
+      {
+        name: "open",
+        description: "Open a URL",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: { type: "string" }
+          },
+          required: ["url"]
+        }
+      },
+      {
+        name: "click",
+        description: "Click element",
+        inputSchema: {
+          type: "object",
+          properties: {
+            selector: { type: "string" }
+          },
+          required: ["selector"]
+        }
+      }
+    ]
+  };
 });
 
-// 👉 TOOL: click
-server.tool("click", async ({ selector }) => {
-  await page.click(selector);
-  return [{ type: "text", text: `Clicked ${selector}` }];
+server.setRequestHandler("tools/call", async (req) => {
+  const { name, arguments: args } = req.params;
+
+  if (name === "open") {
+    if (!browser) browser = await chromium.launch({ headless: false });
+    page = await browser.newPage();
+    await page.goto(args.url);
+
+    return {
+      content: [{ type: "text", text: `Opened ${args.url}` }]
+    };
+  }
+
+  if (name === "click") {
+    await page.click(args.selector);
+
+    return {
+      content: [{ type: "text", text: `Clicked ${args.selector}` }]
+    };
+  }
+
+  throw new Error("Unknown tool");
 });
 
-// 👉 TOOL: type
-server.tool("type", async ({ selector, text }) => {
-  await page.fill(selector, text);
-  return [{ type: "text", text: `Typed in ${selector}` }];
-});
-
-server.listen();
+// ✅ START SERVER
+const transport = new StdioServerTransport();
+await server.connect(transport);
