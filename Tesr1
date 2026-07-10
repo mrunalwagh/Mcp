@@ -6,6 +6,7 @@ const arg2 = process.argv[4];
 
 async function run() {
   try {
+
     if (method === "runTest") {
       const result = await tools.runTest(arg1);
       console.log(result);
@@ -19,6 +20,10 @@ async function run() {
     else if (method === "fixTest") {
       const result = await tools.fixTestFile(arg1);
       console.log(result);
+    }
+
+    else if (method === "agent") {
+      require('./agent');
     }
 
     else {
