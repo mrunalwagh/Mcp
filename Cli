@@ -1,6 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import { chromium } from "playwright";
 
 const server = new Server({
@@ -8,31 +7,23 @@ const server = new Server({
   version: "1.0.0"
 });
 
-// ✅ CORRECT MCP TOOL DEFINITION
-server.setRequestHandler(
-  "open",
-  async (request) => {
-    const { url } = request.params;
+// ✅ CORRECT MCP TOOL REGISTRATION (NO schema block like before)
+server.setRequestHandler("open", async (request) => {
+  const { url } = request.params;
 
-    const browser = await chromium.launch({ headless: false });
-    const page = await browser.newPage();
-    await page.goto(url);
+  const browser = await chromium.launch({ headless: false });
+  const page = await browser.newPage();
+  await page.goto(url);
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Opened ${url}`
-        }
-      ]
-    };
-  },
-  {
-    schema: z.object({
-      url: z.string()
-    })
-  }
-);
+  return {
+    content: [
+      {
+        type: "text",
+        text: `Opened ${url}`
+      }
+    ]
+  };
+});
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
