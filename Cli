@@ -17,9 +17,10 @@ const server = new Server(
 let browser;
 let page;
 
-// ✅ DEFINE TOOLS PROPERLY
-server.setRequestHandler("tools/list", async () => {
-  return {
+// ✅ TOOL LIST
+server.setRequestHandler(
+  { method: "tools/list" },  // 🔥 FIX HERE
+  async () => ({
     tools: [
       {
         name: "open",
@@ -44,32 +45,36 @@ server.setRequestHandler("tools/list", async () => {
         }
       }
     ]
-  };
-});
+  })
+);
 
-server.setRequestHandler("tools/call", async (req) => {
-  const { name, arguments: args } = req.params;
+// ✅ TOOL EXECUTION
+server.setRequestHandler(
+  { method: "tools/call" },  // 🔥 FIX HERE
+  async (req) => {
+    const { name, arguments: args } = req.params;
 
-  if (name === "open") {
-    if (!browser) browser = await chromium.launch({ headless: false });
-    page = await browser.newPage();
-    await page.goto(args.url);
+    if (name === "open") {
+      if (!browser) browser = await chromium.launch({ headless: false });
+      page = await browser.newPage();
+      await page.goto(args.url);
 
-    return {
-      content: [{ type: "text", text: `Opened ${args.url}` }]
-    };
+      return {
+        content: [{ type: "text", text: `Opened ${args.url}` }]
+      };
+    }
+
+    if (name === "click") {
+      await page.click(args.selector);
+
+      return {
+        content: [{ type: "text", text: `Clicked ${args.selector}` }]
+      };
+    }
+
+    throw new Error("Unknown tool");
   }
-
-  if (name === "click") {
-    await page.click(args.selector);
-
-    return {
-      content: [{ type: "text", text: `Clicked ${args.selector}` }]
-    };
-  }
-
-  throw new Error("Unknown tool");
-});
+);
 
 // ✅ START SERVER
 const transport = new StdioServerTransport();
