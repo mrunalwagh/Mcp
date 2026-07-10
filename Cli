@@ -1,81 +1,36 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { chromium } from "playwright";
 
-const server = new Server(
+const server = new Server({
+  name: "playwright-mcp",
+  version: "1.0.0"
+});
+
+// ✅ TOOL: open URL
+server.setRequestHandler(
+  "open",
   {
-    name: "playwright-local",
-    version: "1.0.0"
+    schema: z.object({
+      url: z.string()
+    })
   },
-  {
-    capabilities: {
-      tools: {}
-    }
+  async ({ url }) => {
+    const browser = await chromium.launch({ headless: false });
+    const page = await browser.newPage();
+    await page.goto(url);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Opened ${url}`
+        }
+      ]
+    };
   }
 );
 
-let browser;
-let page;
-
-// ✅ TOOL LIST
-server.setRequestHandler(
-  { method: "tools/list" },  // 🔥 FIX HERE
-  async () => ({
-    tools: [
-      {
-        name: "open",
-        description: "Open a URL",
-        inputSchema: {
-          type: "object",
-          properties: {
-            url: { type: "string" }
-          },
-          required: ["url"]
-        }
-      },
-      {
-        name: "click",
-        description: "Click element",
-        inputSchema: {
-          type: "object",
-          properties: {
-            selector: { type: "string" }
-          },
-          required: ["selector"]
-        }
-      }
-    ]
-  })
-);
-
-// ✅ TOOL EXECUTION
-server.setRequestHandler(
-  { method: "tools/call" },  // 🔥 FIX HERE
-  async (req) => {
-    const { name, arguments: args } = req.params;
-
-    if (name === "open") {
-      if (!browser) browser = await chromium.launch({ headless: false });
-      page = await browser.newPage();
-      await page.goto(args.url);
-
-      return {
-        content: [{ type: "text", text: `Opened ${args.url}` }]
-      };
-    }
-
-    if (name === "click") {
-      await page.click(args.selector);
-
-      return {
-        content: [{ type: "text", text: `Clicked ${args.selector}` }]
-      };
-    }
-
-    throw new Error("Unknown tool");
-  }
-);
-
-// ✅ START SERVER
 const transport = new StdioServerTransport();
 await server.connect(transport);
