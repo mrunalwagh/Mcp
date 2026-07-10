@@ -14,7 +14,7 @@ function runTest(testFile) {
   });
 }
 
-// 🔹 Create Test File (LLM simulation)
+// 🔹 Create Test File
 function createTestFile(fileName, code) {
   return new Promise((resolve, reject) => {
     const path = `tests/${fileName}`;
@@ -25,18 +25,16 @@ function createTestFile(fileName, code) {
   });
 }
 
-// 🔹 Basic Self-healing (simple replace)
+// 🔹 Fix Test File (basic self-healing)
 function fixTestFile(fileName) {
   return new Promise((resolve, reject) => {
     const path = `tests/${fileName}`;
-
     let content = fs.readFileSync(path, 'utf-8');
 
-    // example fix (dummy)
+    // Dummy fix (replace locator)
     content = content.replace("#username", "#user-email");
 
     fs.writeFileSync(path, content);
-
     resolve("Test file updated with new locator");
   });
 }
