@@ -1,0 +1,64 @@
+const readline = require('readline');
+const tools = require('./server');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+function ask(question) {
+  return new Promise(resolve => {
+    rl.question(question, ans => resolve(ans));
+  });
+}
+
+async function runAgent() {
+
+  console.log("🤖 AI Agent Started...\n");
+
+  // 🔹 Step 1: Generate test (simulate LLM)
+  const testCode = `
+import { test, expect } from '@playwright/test';
+
+test('flipkart login', async ({ page }) => {
+  await page.goto('https://flipkart.com');
+  await page.fill('#username', 'test');
+});
+`;
+
+  // 🔹 Approval 1
+  let ans = await ask("Approve test generation? (y/n): ");
+  if (ans !== 'y') return rl.close();
+
+  await tools.createTestFile("flipkart.spec.ts", testCode);
+  console.log("✅ Test file created\n");
+
+  // 🔹 Approval 2
+  ans = await ask("Run test? (y/n): ");
+  if (ans !== 'y') return rl.close();
+
+  try {
+    await tools.runTest("tests/flipkart.spec.ts");
+  } catch (err) {
+
+    console.log("❌ Test failed");
+
+    // 🔹 Approval 3
+    ans = await ask("Fix test? (y/n): ");
+    if (ans !== 'y') return rl.close();
+
+    await tools.fixTestFile("flipkart.spec.ts");
+    console.log("🔧 Test fixed\n");
+
+    // 🔹 Approval 4
+    ans = await ask("Re-run test? (y/n): ");
+    if (ans !== 'y') return rl.close();
+
+    await tools.runTest("tests/flipkart.spec.ts");
+  }
+
+  console.log("🎉 Done");
+  rl.close();
+}
+
+runAgent();
