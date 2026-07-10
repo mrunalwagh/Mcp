@@ -1,13 +1,18 @@
 const tools = require('./server');
 
 const method = process.argv[2];
+const testFile = process.argv[3];
 
 async function run() {
-  if (method === "openGoogle") {
-    const result = await tools.openGoogle();
-    console.log(result);
-  } else {
-    console.log("Unknown method");
+  try {
+    if (method === "runTest") {
+      const result = await tools.runTest(testFile);
+      console.log(result);
+    } else {
+      console.log("Unknown method");
+    }
+  } catch (err) {
+    console.error("Error:", err);
   }
 }
 
