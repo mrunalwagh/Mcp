@@ -1,25 +1,48 @@
-const tools = require('./server');
+const { exec } = require('child_process');
+const fs = require('fs');
 
-const method = process.argv[2];
-const testFile = process.argv[3];
-
-async function run() {
-  try {
-    if (method === "runTest") {
-      if (!testFile) {
-        console.log("Please provide test file path");
-        return;
+// 🔹 Run Playwright Test
+function runTest(testFile) {
+  return new Promise((resolve, reject) => {
+    exec(`npx playwright test ${testFile}`, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr);
+      } else {
+        resolve(stdout);
       }
-
-      const result = await tools.runTest(testFile);
-      console.log(result);
-
-    } else {
-      console.log("Invalid method");
-    }
-  } catch (err) {
-    console.error("Error:", err);
-  }
+    });
+  });
 }
 
-run();
+// 🔹 Create Test File (LLM simulation)
+function createTestFile(fileName, code) {
+  return new Promise((resolve, reject) => {
+    const path = `tests/${fileName}`;
+    fs.writeFile(path, code, (err) => {
+      if (err) reject(err);
+      else resolve(`File created: ${path}`);
+    });
+  });
+}
+
+// 🔹 Basic Self-healing (simple replace)
+function fixTestFile(fileName) {
+  return new Promise((resolve, reject) => {
+    const path = `tests/${fileName}`;
+
+    let content = fs.readFileSync(path, 'utf-8');
+
+    // example fix (dummy)
+    content = content.replace("#username", "#user-email");
+
+    fs.writeFileSync(path, content);
+
+    resolve("Test file updated with new locator");
+  });
+}
+
+module.exports = {
+  runTest,
+  createTestFile,
+  fixTestFile
+};
