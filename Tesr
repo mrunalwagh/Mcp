@@ -1,14 +1,17 @@
-const { chromium } = require('playwright');
+const { exec } = require('child_process');
 
-async function openGoogle() {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.goto('https://google.com');
-  const title = await page.title();
-  await browser.close();
-  return title;
+function runTest(testFile) {
+  return new Promise((resolve, reject) => {
+    exec(`npx playwright test ${testFile}`, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
 }
 
 module.exports = {
-  openGoogle
+  runTest
 };
