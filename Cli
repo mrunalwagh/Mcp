@@ -8,15 +8,12 @@ const server = new Server({
   version: "1.0.0"
 });
 
-// ✅ TOOL: open URL
+// ✅ CORRECT MCP TOOL DEFINITION
 server.setRequestHandler(
   "open",
-  {
-    schema: z.object({
-      url: z.string()
-    })
-  },
-  async ({ url }) => {
+  async (request) => {
+    const { url } = request.params;
+
     const browser = await chromium.launch({ headless: false });
     const page = await browser.newPage();
     await page.goto(url);
@@ -29,6 +26,11 @@ server.setRequestHandler(
         }
       ]
     };
+  },
+  {
+    schema: z.object({
+      url: z.string()
+    })
   }
 );
 
