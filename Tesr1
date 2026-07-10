@@ -6,10 +6,16 @@ const testFile = process.argv[3];
 async function run() {
   try {
     if (method === "runTest") {
+      if (!testFile) {
+        console.log("Please provide test file path");
+        return;
+      }
+
       const result = await tools.runTest(testFile);
       console.log(result);
+
     } else {
-      console.log("Unknown method");
+      console.log("Invalid method");
     }
   } catch (err) {
     console.error("Error:", err);
