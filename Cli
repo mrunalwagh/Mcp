@@ -1,27 +1,54 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { chromium } from "playwright";
 
 const server = new Server({
   name: "playwright-mcp",
-  version: "1.0.0"
+  version: "1.0.0",
 });
 
-// ✅ CORRECT MCP TOOL REGISTRATION (NO schema block like before)
-server.setRequestHandler("open", async (request) => {
-  const { url } = request.params;
+// ✅ CORRECT TOOL REGISTRATION (THIS FIXES YOUR ERROR)
+server.setRequestHandler(
+  "tools/call",
+  async (request) => {
+    const { name, arguments: args } = request.params;
 
-  const browser = await chromium.launch({ headless: false });
-  const page = await browser.newPage();
-  await page.goto(url);
+    if (name === "open") {
+      const browser = await chromium.launch({ headless: false });
+      const page = await browser.newPage();
+      await page.goto(args.url);
 
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Opened ${args.url}`,
+          },
+        ],
+      };
+    }
+
+    throw new Error(`Unknown tool: ${name}`);
+  }
+);
+
+// ✅ TOOL LIST (MANDATORY)
+server.setRequestHandler("tools/list", async () => {
   return {
-    content: [
+    tools: [
       {
-        type: "text",
-        text: `Opened ${url}`
-      }
-    ]
+        name: "open",
+        description: "Open a URL in browser",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: { type: "string" },
+          },
+          required: ["url"],
+        },
+      },
+    ],
   };
 });
 
