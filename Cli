@@ -1,6 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import { chromium } from "playwright";
 
 const server = new Server({
@@ -8,13 +7,38 @@ const server = new Server({
   version: "1.0.0",
 });
 
-// ✅ CORRECT TOOL REGISTRATION (THIS FIXES YOUR ERROR)
-server.setRequestHandler(
-  "tools/call",
-  async (request) => {
-    const { name, arguments: args } = request.params;
+// ✅ TOOL LIST (MANDATORY)
+server.setRequestHandler("tools/list", async () => {
+  return {
+    tools: [
+      {
+        name: "open",
+        description: "Open a URL in browser",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: {
+              type: "string",
+            },
+          },
+          required: ["url"],
+        },
+      },
+    ],
+  };
+});
 
-    if (name === "open") {
+// ✅ CORRECT CALL HANDLER (NO ZOD, NO EXTRA SCHEMA)
+server.setRequestHandler("tools/call", async (request) => {
+  try {
+    const toolName = request.params.name;
+    const args = request.params.arguments;
+
+    if (toolName === "open") {
+      if (!args?.url) {
+        throw new Error("url is required");
+      }
+
       const browser = await chromium.launch({ headless: false });
       const page = await browser.newPage();
       await page.goto(args.url);
@@ -29,27 +53,17 @@ server.setRequestHandler(
       };
     }
 
-    throw new Error(`Unknown tool: ${name}`);
-  }
-);
-
-// ✅ TOOL LIST (MANDATORY)
-server.setRequestHandler("tools/list", async () => {
-  return {
-    tools: [
-      {
-        name: "open",
-        description: "Open a URL in browser",
-        inputSchema: {
-          type: "object",
-          properties: {
-            url: { type: "string" },
-          },
-          required: ["url"],
+    throw new Error(`Unknown tool: ${toolName}`);
+  } catch (err) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Error: ${err.message}`,
         },
-      },
-    ],
-  };
+      ],
+    };
+  }
 });
 
 const transport = new StdioServerTransport();
